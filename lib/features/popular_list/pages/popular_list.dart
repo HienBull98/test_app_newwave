@@ -1,5 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:shimmer/shimmer.dart';
+import 'package:test_app_newwave/features/popular_list/bloc/movie_bloc.dart';
+
+import '../../../models/movie_model.dart';
 
 class PopularListPage extends StatefulWidget {
   const PopularListPage({Key? key}) : super(key: key);
@@ -9,7 +14,24 @@ class PopularListPage extends StatefulWidget {
 }
 
 class _PopularListPageState extends State<PopularListPage> {
-  final List<int> numbers = List.generate(100, (index) => index + 1);
+  final ScrollController _scrollController = ScrollController();
+  int limit = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _scrollController.addListener(_scrollListener);
+    context.read<MovieBloc>().add(PopularMovieEvent(1));
+  }
+
+  void _scrollListener() {
+    if (_scrollController.offset >=
+            _scrollController.position.maxScrollExtent &&
+        !_scrollController.position.outOfRange) {
+      loadMoreMovie();
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -28,145 +50,196 @@ class _PopularListPageState extends State<PopularListPage> {
         backgroundColor: Colors.white,
         elevation: 0,
       ),
-      body: SingleChildScrollView(
-        child: Container(
-          margin: EdgeInsets.symmetric(horizontal: 20.w),
-          color: Colors.white,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text(
-                "Popular list",
-                style: TextStyle(
-                    color: Colors.black54,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 20),
-              ),
-              SizedBox(
-                height: 10.h,
-              ),
-              SizedBox(
-                height: MediaQuery.of(context).size.height,
-                width: MediaQuery.of(context).size.width,
-                child: GridView.builder(
-                    gridDelegate:
-                        const SliverGridDelegateWithFixedCrossAxisCount(
-                      crossAxisCount: 2,
-                      mainAxisSpacing: 20,
-                      crossAxisSpacing: 20,
-                    ),
-                    itemCount: 18,
-                    shrinkWrap: true,
-                    itemBuilder: (context, index) {
-                      return _itemGridView(context);
-                    }),
-              )
-            ],
-          ),
+      body: Container(
+        padding: EdgeInsets.symmetric(horizontal: 20.w),
+        color: Colors.white,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              "Popular list",
+              style: TextStyle(
+                  color: Colors.black54,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 20),
+            ),
+            SizedBox(
+              height: 10.h,
+            ),
+            Expanded(
+              child: BlocBuilder<MovieBloc, MovieState>(
+                  builder: (BuildContext context, state) {
+                if (state is MovieLoading) {
+                  return GridView.builder(
+                      controller: _scrollController,
+                      gridDelegate:
+                          const SliverGridDelegateWithFixedCrossAxisCount(
+                              crossAxisCount: 2,
+                              mainAxisSpacing: 20,
+                              crossAxisSpacing: 20,
+                              childAspectRatio: 9 / 14),
+                      itemCount: 20,
+                      shrinkWrap: true,
+                      itemBuilder: (context, index) {
+                        return Shimmer.fromColors(
+                          baseColor: Colors.white70,
+                          highlightColor: Colors.black54,
+                          child: Container(
+                            color: Colors.black54,
+                          ),
+                        );
+                      });
+                } else if (state is MovieLoaded) {
+                  final List<Movie> list = state.popularMovieList;
+                  return RefreshIndicator(
+                    onRefresh: () async {
+                      context.read<MovieBloc>().add(const PopularMovieEvent(1));
+                    },
+                    child: GridView.builder(
+                        controller: _scrollController,
+                        gridDelegate:
+                            const SliverGridDelegateWithFixedCrossAxisCount(
+                                crossAxisCount: 2,
+                                mainAxisSpacing: 20,
+                                crossAxisSpacing: 20,
+                                childAspectRatio: 9 / 14),
+                        itemCount: list.length,
+                        shrinkWrap: true,
+                        itemBuilder: (context, index) {
+                          final popularMovie = list[index];
+                          return _itemGridView(context, popularMovie);
+                        }),
+                  );
+                } else {
+                  return const Center(
+                    child: Text('Co loi server'),
+                  );
+                }
+              }),
+            )
+          ],
         ),
       ),
     );
   }
 
-  Widget _itemGridView(BuildContext context) {
+  Widget _itemGridView(BuildContext context, Movie popularMovie) {
+    double num = popularMovie.voteAverage;
+    String integerValue = num.toString().split(".")[0];
+    String decimalValue = num.toString().split(".")[1];
+
+    String? releaseDate = popularMovie.releaseDate;
+    String? releaseYear = releaseDate?.split("-")[0];
     return Container(
-      height: 350.h,
-      width: 130.w,
-      // decoration: const BoxDecoration(
-      //   borderRadius: BorderRadius.all(Radius.circular(20)),
-      // ),
       decoration: BoxDecoration(
-          color: Colors.redAccent,
-          borderRadius: BorderRadius.circular(10.0),
-          boxShadow: const [
-            BoxShadow(
-                color: Colors.greenAccent,
-                blurRadius: 5.0,
-                blurStyle: BlurStyle.outer)
-          ]),
-      child: Container(
-        decoration: const BoxDecoration(
-          borderRadius: BorderRadius.all(Radius.circular(10)),
-        ),
-        child: Stack(
-          children: [
-            Image.network(
-              "https://thesaigontimes.vn/Uploads/Articles/67617/6177b_mission_impossible_4___int_poster.jpg",
-              width: double.maxFinite,
-              height: 350.h,
-              fit: BoxFit.fill,
-            ),
-            Container(
-              padding: const EdgeInsets.all(10),
-              child: Stack(
-                children: [
-                  Positioned(
-                      top: 0,
-                      right: 0,
-                      child: Align(
-                        alignment: Alignment.topRight,
-                        child: Container(
-                          width: 30,
-                          height: 30,
-                          decoration: const BoxDecoration(
-                              shape: BoxShape.circle,
-                              gradient: LinearGradient(
-                                begin: Alignment.topLeft,
-                                end: Alignment.bottomRight,
-                                colors: [
-                                  Colors.orange,
-                                  Colors.pinkAccent,
-                                ],
-                              )),
-                          child: Center(
-                            child: RichText(
-                              text: const TextSpan(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(10),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black26.withOpacity(0.3),
+            spreadRadius: 1,
+            blurRadius: 10,
+            offset: const Offset(0, 10),
+          )
+        ],
+      ),
+      child: Stack(
+        children: [
+          ClipRRect(
+              borderRadius: BorderRadius.circular(10),
+              child: popularMovie.posterPath == null
+                  ? Container(
+                      color: Colors.black12,
+                      child: const Center(child: Text("Chưa có ảnh")),
+                    )
+                  : Image.network(
+                      "https://image.tmdb.org/t/p/w500${popularMovie.posterPath}",
+                      width: double.maxFinite,
+                      height: double.maxFinite,
+                      fit: BoxFit.fill,
+                    )),
+          Container(
+            padding: const EdgeInsets.all(10),
+            child: Stack(
+              children: [
+                Positioned(
+                    top: 0,
+                    right: 0,
+                    child: Align(
+                      alignment: Alignment.topRight,
+                      child: Container(
+                        width: 35,
+                        height: 35,
+                        decoration: const BoxDecoration(
+                            shape: BoxShape.circle,
+                            gradient: LinearGradient(
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                              colors: [Colors.orangeAccent, Colors.pink],
+                            )),
+                        child: Center(
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                integerValue,
                                 style: TextStyle(
-                                    fontSize: 12, color: Colors.white),
-                                children: [
-                                  TextSpan(
-                                    text: '9',
-                                    style: TextStyle(
-                                        fontWeight: FontWeight.bold,
-                                        fontSize: 16),
-                                  ),
-                                  TextSpan(
-                                    text: '.8',
-                                  ),
-                                ],
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 20.sp),
                               ),
-                            ),
+                              integerValue == "10"
+                                  ? const SizedBox()
+                                  : Text(
+                                      ".$decimalValue",
+                                      style: TextStyle(
+                                          color: Colors.white, fontSize: 14.sp),
+                                    )
+                            ],
                           ),
                         ),
-                      )),
-                  const Positioned(
-                      left: 0,
-                      bottom: 0,
-                      child: Align(
-                        alignment: Alignment.bottomLeft,
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              "2008",
-                              style: TextStyle(color: Colors.white),
-                            ),
-                            Text(
-                              "Nhiệm vụ bất khả thi",
-                              style: TextStyle(
+                      ),
+                    )),
+                Positioned(
+                    left: 0,
+                    bottom: 0,
+                    child: Align(
+                      alignment: Alignment.bottomLeft,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            releaseYear!,
+                            style: const TextStyle(
                                 color: Colors.white,
-                                fontWeight: FontWeight.bold,
-                              ),
+                                fontSize: 14,
+                                fontWeight: FontWeight.w300),
+                          ),
+                          SizedBox(
+                            width: 130.w,
+                            child: Text(
+                              maxLines: 3,
+                              (popularMovie.originalTitle ?? "").toUpperCase(),
+                              style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.bold),
                             ),
-                          ],
-                        ),
-                      ))
-                ],
-              ),
+                          ),
+                        ],
+                      ),
+                    ))
+              ],
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
+  }
+
+  void loadMoreMovie() {
+    limit += 10;
+    context.read<MovieBloc>().add(LoadMorePopularMovieEvent(limit: limit));
   }
 }
