@@ -91,7 +91,6 @@ class _PopularListPageState extends State<PopularListPage> {
                       });
                 } else if (state is MovieLoaded) {
                   final List<Movie> list = state.popularMovieList;
-                  // print("cccc ${list.length}");
                   return RefreshIndicator(
                     onRefresh: () async {
                       context.read<MovieBloc>().add(const PopularMovieEvent(1));
@@ -132,7 +131,6 @@ class _PopularListPageState extends State<PopularListPage> {
     String? releaseDate = popularMovie.releaseDate;
     String? releaseYear = releaseDate?.split("-")[0];
     return Container(
-      width: 100.w,
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(10),
@@ -141,21 +139,24 @@ class _PopularListPageState extends State<PopularListPage> {
             color: Colors.black26.withOpacity(0.3),
             spreadRadius: 1,
             blurRadius: 10,
-            offset: Offset(0, 10),
+            offset: const Offset(0, 10),
           )
         ],
       ),
       child: Stack(
         children: [
           ClipRRect(
-            borderRadius: BorderRadius.circular(10),
-            child: Image.network(
-              "https://image.tmdb.org/t/p/w500${popularMovie.posterPath}",
-              width: double.maxFinite,
-              height: double.maxFinite,
-              fit: BoxFit.fill,
-            ),
-          ),
+              borderRadius: BorderRadius.circular(10),
+              child: popularMovie.posterPath == null
+                  ? const Center(
+                      child: Text("Chưa có ảnh"),
+                    )
+                  : Image.network(
+                      "https://image.tmdb.org/t/p/w500${popularMovie.posterPath}",
+                      width: double.maxFinite,
+                      height: double.maxFinite,
+                      fit: BoxFit.fill,
+                    )),
           Container(
             padding: const EdgeInsets.all(10),
             child: Stack(
@@ -182,16 +183,18 @@ class _PopularListPageState extends State<PopularListPage> {
                             children: [
                               Text(
                                 integerValue,
-                                style: const TextStyle(
+                                style: TextStyle(
                                     color: Colors.white,
                                     fontWeight: FontWeight.bold,
-                                    fontSize: 24),
+                                    fontSize: 20.sp),
                               ),
-                              Text(
-                                ".$decimalValue",
-                                style: const TextStyle(
-                                    color: Colors.white, fontSize: 14),
-                              )
+                              integerValue == "10"
+                                  ? const SizedBox()
+                                  : Text(
+                                      ".$decimalValue",
+                                      style: TextStyle(
+                                          color: Colors.white, fontSize: 14.sp),
+                                    )
                             ],
                           ),
                         ),

@@ -14,7 +14,6 @@ class MovieRequest {
         'api_key': apiKey,
         'page': page,
       });
-      print('aaaa $response');
       if (response.statusCode == 200) {
         List<Movie> list = [];
         List<dynamic> jsonResponse = response.data["results"];
@@ -26,7 +25,6 @@ class MovieRequest {
         return [];
       }
     } on DioException catch (e) {
-      print('bbb $e');
       return e.response?.data;
     } catch (error) {
       return [];
