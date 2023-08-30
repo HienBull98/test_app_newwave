@@ -148,8 +148,9 @@ class _PopularListPageState extends State<PopularListPage> {
           ClipRRect(
               borderRadius: BorderRadius.circular(10),
               child: popularMovie.posterPath == null
-                  ? const Center(
-                      child: Text("Chưa có ảnh"),
+                  ? Container(
+                      color: Colors.black12,
+                      child: const Center(child: Text("Chưa có ảnh")),
                     )
                   : Image.network(
                       "https://image.tmdb.org/t/p/w500${popularMovie.posterPath}",
